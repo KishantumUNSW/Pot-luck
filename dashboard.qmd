@@ -1,15 +1,37 @@
 ---
 title: "dashboard"
-format: html
+format: dashboard
 ---
 
 # Kish
 
+```{python}
+
+```
+
 # Siddhesh
+
+```{python}
+
+```
 
 # Leab
 
+```{python}
+
+```
+
 # Anish
 
+```{python}
+
+```
+
 # Jasmine
+
+```{python}
+
+```
+
+
 
