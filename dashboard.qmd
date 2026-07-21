@@ -1,37 +1,163 @@
 ---
-title: "dashboard"
-format: dashboard
+title: "VitalDB — Exploratory Analysis"
+format:
+  dashboard:
+    orientation: rows
+jupyter: python3
+execute:
+  echo: false
+  warning: false
+  message: false
 ---
 
-# Kish
-
 ```{python}
+#| output: false
+# Setup — runs once, displays nothing
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import os
 
+path = "/Users/kishantumnaransamy/R Studio/Group Assignment"
+
+clinical  = pd.read_csv(os.path.join(path, "clinical_data.csv"))
+labs      = pd.read_csv(os.path.join(path, "lab_data.csv"))
+clin_dict = pd.read_csv(os.path.join(path, "clinical_parameters.csv"))
+
+# age is text because 8 patients are top-coded ">89" for de-identification
+clinical["age_num"]      = pd.to_numeric(
+    clinical["age"].replace(">89", "90"), errors="coerce")
+clinical["age_censored"] = clinical["age"] == ">89"
+
+# every later chunk uses this name
+df = clinical
+
+num_vars = df.select_dtypes("number").columns
+cat_vars = df.select_dtypes("object").columns
+
+plt.rcParams.update({"figure.autolayout": True, "axes.grid": True,
+                     "grid.alpha": .3, "font.size": 9})
 ```
 
-# Siddhesh
+# Overview
+
+## Row {height=22%}
 
 ```{python}
-
+#| content: valuebox
+#| title: "Operations"
+dict(icon="clipboard-pulse", color="primary", value=f"{len(df):,}")
 ```
-
-# Leab
 
 ```{python}
-
+#| content: valuebox
+#| title: "Variables"
+dict(icon="table", color="secondary", value=int(df.shape[1]))
 ```
-
-# Anish
 
 ```{python}
-
+#| content: valuebox
+#| title: "Median age"
+dict(icon="person", color="light", value=f"{df['age_num'].median():.0f} y")
 ```
-
-# Jasmine
 
 ```{python}
-
+#| content: valuebox
+#| title: "In-hospital deaths"
+dict(icon="exclamation-triangle", color="danger",
+     value=f"{int(df['death_inhosp'].sum())} ({100*df['death_inhosp'].mean():.1f}%)")
 ```
 
+## Row {height=78%}
 
+### Column
 
+```{python}
+#| title: "Distribution of key variables"
+fig, axes = plt.subplots(2, 3, figsize=(11, 6))
+for ax, v in zip(axes.ravel(),
+                 ["age_num", "bmi", "height", "weight", "intraop_ebl", "intraop_uo"]):
+    ax.hist(df[v].dropna(), bins=40, color="darkorange", edgecolor="white")
+    ax.set_title(v, fontsize=10)
+plt.show()
+```
+
+### Column {width=35%}
+
+```{python}
+#| title: "Numeric summary"
+df[num_vars].describe().T.round(2)[["count", "mean", "std", "min", "50%", "max"]]
+```
+
+# Data quality
+
+## Row
+
+```{python}
+#| title: "Missingness (top 30 variables)"
+missing = (df.isna().mean() * 100).sort_values(ascending=False).round(1)
+top = missing.head(30).iloc[::-1]
+plt.figure(figsize=(7, 8))
+plt.barh(top.index, top.values, color="steelblue")
+plt.xlabel("% missing")
+plt.show()
+```
+
+```{python}
+#| title: "Categorical variables — top values"
+rows = []
+for v in ["sex", "department", "optype", "approach", "position",
+          "ane_type", "airway"]:
+    if v in df.columns:
+        for k, n in df[v].value_counts(dropna=False).head(5).items():
+            rows.append({"variable": v, "value": str(k), "n": int(n),
+                         "%": round(100 * n / len(df), 1)})
+pd.DataFrame(rows)
+```
+
+# Outcomes
+
+## Row {height=45%}
+
+```{python}
+#| title: "Mortality by ASA physical status"
+t = (df.dropna(subset=["asa"])
+       .groupby("asa")["death_inhosp"].agg(n="size", deaths="sum"))
+t["mortality_%"] = (100 * t["deaths"] / t["n"]).round(2)
+t
+```
+
+```{python}
+#| title: "Mortality — emergency vs elective"
+t2 = df.groupby("emop")["death_inhosp"].agg(n="size", deaths="sum")
+t2["mortality_%"] = (100 * t2["deaths"] / t2["n"]).round(2)
+t2.index = ["Elective", "Emergency"]
+t2
+```
+
+## Row {height=55%}
+
+```{python}
+#| title: "Age by outcome"
+plt.figure(figsize=(5, 4))
+plt.boxplot([df.loc[df["death_inhosp"] == 0, "age_num"].dropna(),
+             df.loc[df["death_inhosp"] == 1, "age_num"].dropna()],
+            tick_labels=["Survived", "Died"])
+plt.ylabel("Age (years)")
+plt.show()
+```
+
+```{python}
+#| title: "Correlations between key variables"
+cor_vars = [c for c in ["age_num", "bmi", "height", "weight", "preop_hb",
+                        "preop_cr", "preop_alb", "intraop_ebl", "intraop_uo",
+                        "intraop_crystalloid"] if c in df.columns]
+cm = df[cor_vars].corr()
+plt.figure(figsize=(6.5, 5.5))
+im = plt.imshow(cm, cmap="coolwarm", vmin=-1, vmax=1)
+plt.colorbar(im, label="r")
+plt.xticks(range(len(cor_vars)), cor_vars, rotation=45, ha="right")
+plt.yticks(range(len(cor_vars)), cor_vars)
+plt.grid(False)
+plt.show()
+```
