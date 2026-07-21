@@ -3,6 +3,7 @@ title: "VitalDB — Exploratory Analysis"
 format:
   dashboard:
     orientation: rows
+    theme: [darkly, theme.scss]
 jupyter: python3
 execute:
   echo: false
@@ -13,7 +14,14 @@ execute:
 # Overview
 
 ```{python}
+#| echo: false
+#| output: false
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import os
 
+from dashboard_theme import TEMPLATE, PALETTE, COLORS   # ← just another import
 ```
 
 # Siddhesh
