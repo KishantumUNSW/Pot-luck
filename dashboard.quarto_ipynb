@@ -1,0 +1,310 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"VitalDB — Exploratory Analysis\"\n",
+        "format:\n",
+        "  dashboard:\n",
+        "    orientation: rows\n",
+        "jupyter: python3\n",
+        "execute:\n",
+        "  echo: false\n",
+        "  warning: false\n",
+        "  message: false\n",
+        "---"
+      ],
+      "id": "04491f78"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#| output: false\n",
+        "# Setup — runs once, displays nothing\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import os\n",
+        "\n",
+        "path = \"/Users/kishantumnaransamy/R Studio/Group Assignment\"\n",
+        "\n",
+        "clinical  = pd.read_csv(os.path.join(path, \"clinical_data.csv\"))\n",
+        "labs      = pd.read_csv(os.path.join(path, \"lab_data.csv\"))\n",
+        "clin_dict = pd.read_csv(os.path.join(path, \"clinical_parameters.csv\"))\n",
+        "\n",
+        "# age is text because 8 patients are top-coded \">89\" for de-identification\n",
+        "clinical[\"age_num\"]      = pd.to_numeric(\n",
+        "    clinical[\"age\"].replace(\">89\", \"90\"), errors=\"coerce\")\n",
+        "clinical[\"age_censored\"] = clinical[\"age\"] == \">89\"\n",
+        "\n",
+        "# every later chunk uses this name\n",
+        "df = clinical\n",
+        "\n",
+        "num_vars = df.select_dtypes(\"number\").columns\n",
+        "cat_vars = df.select_dtypes(\"object\").columns\n",
+        "\n",
+        "plt.rcParams.update({\"figure.autolayout\": True, \"axes.grid\": True,\n",
+        "                     \"grid.alpha\": .3, \"font.size\": 9})"
+      ],
+      "id": "f875e5cf",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Overview\n",
+        "\n",
+        "## Row {height=22%}"
+      ],
+      "id": "8c2741aa"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "content": "valuebox",
+        "title": "Operations"
+      },
+      "source": [
+        "dict(icon=\"clipboard-pulse\", color=\"primary\", value=f\"{len(df):,}\")"
+      ],
+      "id": "fded1bb4",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "content": "valuebox",
+        "title": "Variables"
+      },
+      "source": [
+        "dict(icon=\"table\", color=\"secondary\", value=int(df.shape[1]))"
+      ],
+      "id": "4c72c392",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "content": "valuebox",
+        "title": "Median age"
+      },
+      "source": [
+        "dict(icon=\"person\", color=\"light\", value=f\"{df['age_num'].median():.0f} y\")"
+      ],
+      "id": "9744d89f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "content": "valuebox",
+        "title": "In-hospital deaths"
+      },
+      "source": [
+        "dict(icon=\"exclamation-triangle\", color=\"danger\",\n",
+        "     value=f\"{int(df['death_inhosp'].sum())} ({100*df['death_inhosp'].mean():.1f}%)\")"
+      ],
+      "id": "3828a664",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Row {height=78%}\n",
+        "\n",
+        "### Column"
+      ],
+      "id": "a238700e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Distribution of key variables"
+      },
+      "source": [
+        "fig, axes = plt.subplots(2, 3, figsize=(11, 6))\n",
+        "for ax, v in zip(axes.ravel(),\n",
+        "                 [\"age_num\", \"bmi\", \"height\", \"weight\", \"intraop_ebl\", \"intraop_uo\"]):\n",
+        "    ax.hist(df[v].dropna(), bins=40, color=\"darkorange\", edgecolor=\"white\")\n",
+        "    ax.set_title(v, fontsize=10)\n",
+        "plt.show()"
+      ],
+      "id": "60c55b84",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### Column {width=35%}"
+      ],
+      "id": "d85600a8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Numeric summary"
+      },
+      "source": [
+        "df[num_vars].describe().T.round(2)[[\"count\", \"mean\", \"std\", \"min\", \"50%\", \"max\"]]"
+      ],
+      "id": "d009b384",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Data quality\n",
+        "\n",
+        "## Row"
+      ],
+      "id": "e7e3f2c3"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Missingness (top 30 variables)"
+      },
+      "source": [
+        "missing = (df.isna().mean() * 100).sort_values(ascending=False).round(1)\n",
+        "top = missing.head(30).iloc[::-1]\n",
+        "plt.figure(figsize=(7, 8))\n",
+        "plt.barh(top.index, top.values, color=\"steelblue\")\n",
+        "plt.xlabel(\"% missing\")\n",
+        "plt.show()"
+      ],
+      "id": "3d938181",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Categorical variables — top values"
+      },
+      "source": [
+        "rows = []\n",
+        "for v in [\"sex\", \"department\", \"optype\", \"approach\", \"position\",\n",
+        "          \"ane_type\", \"airway\"]:\n",
+        "    if v in df.columns:\n",
+        "        for k, n in df[v].value_counts(dropna=False).head(5).items():\n",
+        "            rows.append({\"variable\": v, \"value\": str(k), \"n\": int(n),\n",
+        "                         \"%\": round(100 * n / len(df), 1)})\n",
+        "pd.DataFrame(rows)"
+      ],
+      "id": "d9682973",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Outcomes\n",
+        "\n",
+        "## Row {height=45%}"
+      ],
+      "id": "efe5791c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Mortality by ASA physical status"
+      },
+      "source": [
+        "t = (df.dropna(subset=[\"asa\"])\n",
+        "       .groupby(\"asa\")[\"death_inhosp\"].agg(n=\"size\", deaths=\"sum\"))\n",
+        "t[\"mortality_%\"] = (100 * t[\"deaths\"] / t[\"n\"]).round(2)\n",
+        "t"
+      ],
+      "id": "50e7365f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Mortality — emergency vs elective"
+      },
+      "source": [
+        "t2 = df.groupby(\"emop\")[\"death_inhosp\"].agg(n=\"size\", deaths=\"sum\")\n",
+        "t2[\"mortality_%\"] = (100 * t2[\"deaths\"] / t2[\"n\"]).round(2)\n",
+        "t2.index = [\"Elective\", \"Emergency\"]\n",
+        "t2"
+      ],
+      "id": "315e570e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Row {height=55%}"
+      ],
+      "id": "9a4bc503"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Age by outcome"
+      },
+      "source": [
+        "plt.figure(figsize=(5, 4))\n",
+        "plt.boxplot([df.loc[df[\"death_inhosp\"] == 0, \"age_num\"].dropna(),\n",
+        "             df.loc[df[\"death_inhosp\"] == 1, \"age_num\"].dropna()],\n",
+        "            tick_labels=[\"Survived\", \"Died\"])\n",
+        "plt.ylabel(\"Age (years)\")\n",
+        "plt.show()"
+      ],
+      "id": "75647c7d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "title": "Correlations between key variables"
+      },
+      "source": [
+        "cor_vars = [c for c in [\"age_num\", \"bmi\", \"height\", \"weight\", \"preop_hb\",\n",
+        "                        \"preop_cr\", \"preop_alb\", \"intraop_ebl\", \"intraop_uo\",\n",
+        "                        \"intraop_crystalloid\"] if c in df.columns]\n",
+        "cm = df[cor_vars].corr()\n",
+        "plt.figure(figsize=(6.5, 5.5))\n",
+        "im = plt.imshow(cm, cmap=\"coolwarm\", vmin=-1, vmax=1)\n",
+        "plt.colorbar(im, label=\"r\")\n",
+        "plt.xticks(range(len(cor_vars)), cor_vars, rotation=45, ha=\"right\")\n",
+        "plt.yticks(range(len(cor_vars)), cor_vars)\n",
+        "plt.grid(False)\n",
+        "plt.show()"
+      ],
+      "id": "9517e5a4",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

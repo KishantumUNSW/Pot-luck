@@ -1,0 +1,184 @@
+/*-- scss:defaults --*/
+// =============================================================================
+// VitalDB dashboard theme — the palette from the HTML prototypes
+// Reference it from _quarto.yml or the document YAML:
+//
+//   format:
+//     dashboard:
+//       theme: [darkly, theme.scss]
+//
+// Listing `darkly` first gives sensible dark defaults; this file overrides them.
+// =============================================================================
+
+// --- core palette ---
+$bg:        #0d1117;   // page background
+$panel:     #161b22;   // card background
+$line:      #30363d;   // borders
+$txt:       #e6edf3;   // primary text
+$dim:       #8b949e;   // secondary text
+$accent:    #60a5fa;   // links, active nav
+
+// --- semantic colours (used by value boxes) ---
+$blue:   #60a5fa;
+$red:    #f87171;
+$green:  #4ade80;
+$yellow: #facc15;
+$orange: #fb923c;
+$purple: #c084fc;
+
+$primary:   $blue;
+$secondary: #475569;
+$success:   $green;
+$info:      #22d3ee;
+$warning:   $orange;
+$danger:    $red;
+$light:     #334155;
+$dark:      $panel;
+
+// --- typography ---
+$font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                         "Helvetica Neue", Arial, sans-serif;
+$font-size-root:  14px;
+$headings-font-weight: 600;
+
+// --- bootstrap surfaces ---
+$body-bg:      $bg;
+$body-color:   $txt;
+$link-color:   $accent;
+$border-color: $line;
+
+$card-bg:            $panel;
+$card-border-color:  $line;
+$card-border-radius: 8px;
+$card-cap-bg:        $panel;
+
+$navbar-bg:              #0a0d12;
+$navbar-dark-color:      $dim;
+$navbar-dark-hover-color: $txt;
+$navbar-dark-active-color: $txt;
+
+$table-bg:            transparent;
+$table-color:         $txt;
+$table-border-color:  $line;
+$table-hover-bg:      rgba(96, 165, 250, .07);
+
+$input-bg:     $panel;
+$input-color:  $txt;
+$input-border-color: $line;
+
+
+/*-- scss:rules --*/
+// =============================================================================
+// Fine detail — the bits that make it look like the prototypes
+// =============================================================================
+
+// --- card headers: small, uppercase, tracked out ---
+.card-header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .9px;
+  text-transform: uppercase;
+  color: $dim;
+  background: $panel;
+  border-bottom: 1px solid $line;
+  padding: 9px 14px;
+}
+
+.card {
+  box-shadow: none;
+  border: 1px solid $line;
+}
+
+// --- navigation ---
+.navbar {
+  border-bottom: 1px solid $line;
+  min-height: 46px;
+}
+.navbar-brand {
+  font-weight: 600;
+  letter-spacing: -.2px;
+}
+.nav-link {
+  font-size: 12.5px;
+  border-bottom: 2px solid transparent;
+}
+.nav-link.active {
+  border-bottom-color: $accent !important;
+  color: $txt !important;
+}
+
+// --- value boxes: big tabular figures, quiet labels ---
+.bslib-value-box {
+  border: 1px solid $line;
+  border-radius: 8px;
+
+  .value-box-value {
+    font-size: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .value-box-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    opacity: .85;
+  }
+  .value-box-showcase { opacity: .55; }
+}
+
+// --- tables: right-aligned numbers, tabular figures ---
+table, .dataframe {
+  font-size: 12px;
+  border-collapse: collapse;
+  width: 100%;
+
+  th {
+    color: $dim;
+    font-weight: 600;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    text-align: right;
+    border-bottom: 1px solid $line;
+    padding: 6px 8px;
+  }
+  td {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    border-bottom: 1px solid $line;
+    padding: 5px 8px;
+  }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr:hover { background: rgba(96, 165, 250, .06); }
+}
+
+// --- callout used for the limitations / "how to read this" panels ---
+.callout, .card.callout-style-default {
+  border-radius: 6px;
+  border-left-width: 3px;
+}
+
+// --- prose inside cards ---
+.card-body p {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #b8c4d0;
+}
+code {
+  background: rgba(110, 118, 129, .18);
+  color: #a5d6ff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11.5px;
+}
+
+// --- scrollbars, so panels don't show light-mode bars ---
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: $bg; }
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 5px;
+  border: 2px solid $bg;
+}
+::-webkit-scrollbar-thumb:hover { background: #4b5563; }
